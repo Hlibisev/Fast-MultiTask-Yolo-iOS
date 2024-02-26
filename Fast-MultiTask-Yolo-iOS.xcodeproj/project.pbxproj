@@ -135,11 +135,11 @@
 		72DD2F132B8C3F8400BAE536 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				72DD2F1B2B8C3F8400BAE536 /* Shaders */,
+				72DD2F162B8C3F8400BAE536 /* Weights */,
 				72DD2F142B8C3F8400BAE536 /* PostProcessers.swift */,
 				72DD2F152B8C3F8400BAE536 /* ObjectDetectionModel.swift */,
-				72DD2F162B8C3F8400BAE536 /* Weights */,
 				72DD2F1A2B8C3F8400BAE536 /* ObjectDetector.swift */,
-				72DD2F1B2B8C3F8400BAE536 /* Shaders */,
 				72DD2F1E2B8C3F8400BAE536 /* Utils.swift */,
 				72DD2F1F2B8C3F8400BAE536 /* NMS.swift */,
 			);
