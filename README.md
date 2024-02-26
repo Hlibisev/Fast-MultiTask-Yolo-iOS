@@ -1,4 +1,4 @@
 
 
-https://github.com/Hlibisev/Fast-MultiTask-Yolo-iOS/assets/64321152/c96e1314-7890-495a-8547-8d83aef72a85
+https://github.com/Hlibisev/Fast-MultiTask-Yolo-iOS/assets/64321152/aa0694cb-b35a-42d6-88b6-0df215b48340
 
