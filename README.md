@@ -125,7 +125,7 @@ Therefore, I also discarded this option. If the neural network worked on the GPU
 ### Nearest Resize with Metal Kernel
 Next, I tried to implement my nearest resizing kernel to compare its speed with Apple's. Billinear generally works better than Nearest, but here we win about **50-100 fps**.
 
-```python
+```msl
 kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) ]],
                           texture2d<float, access::write> destination [[ texture(1) ]],
                           uint2 gid [[ thread_position_in_grid ]])
