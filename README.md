@@ -39,7 +39,7 @@ All attempts were inspired by the idea of transferring resizing to the NPU or re
 ## Resize Inside Layer
 Since direct access to the NPU is not available – thanks, Apple – I began experimenting with writing a version of resize in PyTorch, which, after conversion to CoreML, would utilize the NPU. 
 
-```
+```python
 class ResizeLayer(torch.nn.Module):
     def __init__(self):
         super(ResizeLayer, self).__init__()
@@ -52,7 +52,7 @@ class ResizeLayer(torch.nn.Module):
 
 However, due to an internal error in 'coremltools' (the library for converting Torch models into CoreML format, which can run on phones and MacBooks), I couldn't compile this model. But later, with operations implemented by Apple, I redefined upsample_bilinear2d and managed to get a working model, though it only reached 270 fps compared to our baseline. Therefore, I tried another approach.
 
-```
+```python
 @register_torch_op(torch_alias=["upsample_bilinear2d"], override=True)
 def resize(context, node):
     x, shape, _, _ = _get_inputs(context, node, expected=4)
@@ -65,7 +65,7 @@ def resize(context, node):
 ## Nearest Torch Realization Layer
 Next, I decided not to use Apple operations but to write my resizer using regular torch functions. Such a nearest resizer was also worse than the baseline and reached 170 fps after conversion.
 
-```
+```python
 def upsample_1d(x, shape1, axis: int = 2):
     shape0 = x.size(axis)
 
@@ -94,7 +94,7 @@ The input size of the frontal camera on iPhone 13 is 1920, 1080. The idea was to
 
 I wrote a convolution that resembles resizing. Although it just reduces the input image by 16 times, and you cannot choose another resolution, I still wanted to test this hypothesis.
 
-```
+```python
 class ResizeConv(torch.nn.Module):
     def __init__(self):
         super(ResizeConv, self).__init__()
@@ -123,7 +123,7 @@ Therefore, I also discarded this option. If the neural network worked on the GPU
 ## Nearest Resize with Metal Kernel
 Next, I tried to implement my nearest resizing kernel to compare its speed with Apple's. Billinear generally works better than Nearest, but here we win about 50-100 fps.
 
-```
+```python
 kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) ]],
                           texture2d<float, access::write> destination [[ texture(1) ]],
                           uint2 gid [[ thread_position_in_grid ]])
@@ -144,7 +144,7 @@ kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) 
 # Pipeline model
 As an experiment, I had a hypothesis to connect resize and yolo into one model with hardcoded resolution, and this can be done through coremltools.
 
-```
+```python
 resizer = ct.convert(
     traced_resize_model,
     inputs=[ct.ImageType(name="input", shape=(1, 3, 1920, 1080))],
@@ -173,7 +173,7 @@ I tried all torch resizes, and they yielded 100-130 fps with the model. This is 
 
 # One static model
 
-```
+```python
 class IOSMultiModel(torch.nn.Module):
     def __init__(self, model):
         super().__init__()
@@ -190,7 +190,7 @@ My last attempt to speed up resizing – into one mlmodel, and so far, this is t
 
 I achieved this result using torchvision.
 
-```
+```python
 class UpsampleModel(torch.nn.Module):
     def __init__(self):
         super(UpsampleModel, self).__init__()
