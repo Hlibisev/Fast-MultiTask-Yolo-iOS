@@ -13,7 +13,7 @@ There are primarily two tools for efficiently running neural networks on Apple d
 * Metal and Metal Shader Language (MSL). Neural networks operate effectively on GPUs. MSL allows for writing highly efficient low-level code, while the Metal API facilitates its execution.
 * The CoreML framework, which takes a static graph, for example, after JIT torch, and converts it into a format for running on Apple devices without the need for a Python interpreter or Torch. It maps operations from this graph to operations written by Apple for the GPU (using Metal), NPU, or CPU.
 
-[NPU](https://github.com/hollance/neural-engine) – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found here.
+NPU – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found [here](https://github.com/hollance/neural-engine).
 
 Using these two tools, as well as standard CPU code, I aimed to write an optimal implementation of the MultiTask Yolov8 algorithm on the iPhone.
 
