@@ -15,7 +15,7 @@ There are primarily two tools for efficiently running neural networks on Apple d
 
 NPU – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found [here](https://github.com/hollance/neural-engine).
 
-Using these two tools, as well as standard CPU code, I aimed to write an optimal implementation of the MultiTask Yolov8 algorithm on the iPhone.
+Using these two tools, as well as standard CPU code, I aimed to write an optimal implementation of the MultiTask YOLOv8 algorithm on the iPhone.
 
 
 ## NPU vs GPU: Performance Analysis
