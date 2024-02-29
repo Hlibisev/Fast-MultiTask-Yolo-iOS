@@ -1,11 +1,13 @@
-
+# Fast-MultiTask-Yolo-iOS
+Efficient Algorithm for Gesture Recognition and Body Keypoints Detection. 
 
 https://github.com/Hlibisev/Fast-MultiTask-Yolo-iOS/assets/64321152/aa0694cb-b35a-42d6-88b6-0df215b48340
 
 ## Introduction
 There are primarily two tools for efficiently running neural networks on Apple devices. 
-1 – Metal and Metal Shader Language (MSL). Neural networks operate effectively on GPUs. MSL allows for writing highly efficient low-level code, while the Metal API facilitates its execution.
-2 – The CoreML framework, which takes a static graph, for example, after JIT torch, and converts it into a format for running on Apple devices without the need for a Python interpreter or Torch. It maps operations from this graph to operations written by Apple for the GPU (using Metal), NPU, or CPU.
+
+* Metal and Metal Shader Language (MSL). Neural networks operate effectively on GPUs. MSL allows for writing highly efficient low-level code, while the Metal API facilitates its execution.
+* The CoreML framework, which takes a static graph, for example, after JIT torch, and converts it into a format for running on Apple devices without the need for a Python interpreter or Torch. It maps operations from this graph to operations written by Apple for the GPU (using Metal), NPU, or CPU.
 
 NPU – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found here.
 
