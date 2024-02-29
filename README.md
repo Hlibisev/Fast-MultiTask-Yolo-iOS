@@ -4,12 +4,16 @@ Efficient Algorithm for Gesture Recognition and Body Keypoints Detection.
 https://github.com/Hlibisev/Fast-MultiTask-Yolo-iOS/assets/64321152/aa0694cb-b35a-42d6-88b6-0df215b48340
 
 ## Introduction
+I won't delve into the details of my model. Briefly, I customized [YOLOv8](https://github.com/ultralytics/ultralytics) for multitasking. In my implementation, this model has two heads: one for Body Keypoints Detection, and another for Gesture Recognition. Each head had its own loss, and the batch was composed of samples from the same dataset, passing only through the corresponding head. I added object-nearby cropping augmentations to align the data distribution closer to expected use from a phone (i.e., at a short distance). The training was conducted on datasets for the heads and was sourced from [Сoco-pose](https://docs.ultralytics.com/ru/datasets/pose/coco/) and the [Рagrid](https://github.com/hukenovs/hagrid) datasets in two stages. Initially, I used pretrained weights for the Body Keypoints model, froze the backbone, and fine-tuned the head for Gesture Recognition. Subsequently, I unfroze everything and fine-tuned for both tasks simultaneously.
+
+Let's focus on deployment implementation.
+
 There are primarily two tools for efficiently running neural networks on Apple devices. 
 
 * Metal and Metal Shader Language (MSL). Neural networks operate effectively on GPUs. MSL allows for writing highly efficient low-level code, while the Metal API facilitates its execution.
 * The CoreML framework, which takes a static graph, for example, after JIT torch, and converts it into a format for running on Apple devices without the need for a Python interpreter or Torch. It maps operations from this graph to operations written by Apple for the GPU (using Metal), NPU, or CPU.
 
-NPU – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found here.
+[NPU](https://github.com/hollance/neural-engine) – a more efficient chip for matrix multiplication calculations. Direct programming on it is not possible, but it can be utilized for certain layers when we convert our model to CoreML format. More information about NPU can be found here.
 
 Using these two tools, as well as standard CPU code, I aimed to write an optimal implementation of the MultiTask Yolov8 algorithm on the iPhone.
 
@@ -34,7 +38,7 @@ We observe that the NPU chip has the highest performance. It's sufficient for th
 For our model, preprocessing outside the CoreML Model only included resizing.
 
 ### Baseline
-As a test, I initially performed resizing on the CPU but realized it took much longer than the model itself. Thus, I quickly moved to MPSImageBilinearScale. This GPU-based resizing operation operates at approximately **600 fps**. This will be our baseline, which we will aim to improve further.
+As a test, I initially performed resizing on the CPU but realized it took much longer than the model itself. Thus, I quickly moved to [MPSImageBilinearScale](https://developer.apple.com/documentation/metalperformanceshaders/mpsimagebilinearscale?language=objc). This GPU-based resizing operation operates at approximately **600 fps**. This will be our baseline, which we will aim to improve further.
 
 All attempts were inspired by the idea of transferring resizing to the NPU or reducing the overhead of launching GPU operations by incorporating this operation into a static graph.
 
@@ -52,7 +56,7 @@ class ResizeLayer(torch.nn.Module):
         return x
 ```
 
-However, due to an internal error in 'coremltools' (the library for converting Torch models into CoreML format, which can run on phones and MacBooks), I couldn't compile this model. But later, with operations implemented by Apple, I redefined upsample_bilinear2d and managed to get a working model, though it only reached **270 fps** compared to our baseline. Therefore, I tried another approach.
+However, due to an internal error in `coremltools` (the library for converting Torch models into CoreML format, which can run on phones and MacBooks), I couldn't compile this model. But later, with operations implemented by Apple, I redefined `upsample_bilinear2d` and managed to get a working model, though it only reached **270 fps** compared to our baseline. Therefore, I tried another approach.
 
 ```python
 @register_torch_op(torch_alias=["upsample_bilinear2d"], override=True)
@@ -144,7 +148,7 @@ kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) 
 ```
 
 ### Pipeline model
-As an experiment, I had a hypothesis to connect resize and yolo into one model with hardcoded resolution, and this can be done through coremltools.
+As an experiment, I had a hypothesis to connect resize and yolo into one model with hardcoded resolution, and this can be done through `coremltools`.
 
 ```python
 resizer = ct.convert(
