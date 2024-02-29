@@ -34,7 +34,7 @@ We observe that the NPU chip has the highest performance. It's sufficient for th
 For our model, preprocessing outside the CoreML Model only included resizing.
 
 ### Baseline
-As a test, I initially performed resizing on the CPU but realized it took much longer than the model itself. Thus, I quickly moved to MPSImageBilinearScale. This GPU-based resizing operation operates at approximately 600 fps. This will be our baseline, which we will aim to improve further.
+As a test, I initially performed resizing on the CPU but realized it took much longer than the model itself. Thus, I quickly moved to MPSImageBilinearScale. This GPU-based resizing operation operates at approximately **600 fps**. This will be our baseline, which we will aim to improve further.
 
 All attempts were inspired by the idea of transferring resizing to the NPU or reducing the overhead of launching GPU operations by incorporating this operation into a static graph.
 
@@ -52,7 +52,7 @@ class ResizeLayer(torch.nn.Module):
         return x
 ```
 
-However, due to an internal error in 'coremltools' (the library for converting Torch models into CoreML format, which can run on phones and MacBooks), I couldn't compile this model. But later, with operations implemented by Apple, I redefined upsample_bilinear2d and managed to get a working model, though it only reached 270 fps compared to our baseline. Therefore, I tried another approach.
+However, due to an internal error in 'coremltools' (the library for converting Torch models into CoreML format, which can run on phones and MacBooks), I couldn't compile this model. But later, with operations implemented by Apple, I redefined upsample_bilinear2d and managed to get a working model, though it only reached **270 fps** compared to our baseline. Therefore, I tried another approach.
 
 ```python
 @register_torch_op(torch_alias=["upsample_bilinear2d"], override=True)
@@ -65,7 +65,7 @@ def resize(context, node):
 
 
 ### Nearest Torch Realization Layer
-Next, I decided not to use Apple operations but to write my resizer using regular torch functions. Such a nearest resizer was also worse than the baseline and reached 170 fps after conversion.
+Next, I decided not to use Apple operations but to write my resizer using regular torch functions. Such a nearest resizer was also worse than the baseline and reached **170 fps** after conversion.
 
 ```python
 def upsample_1d(x, shape1, axis: int = 2):
@@ -110,7 +110,7 @@ class ResizeConv(torch.nn.Module):
         return x
 ```
 
-Running on a MacBook or iPhone with a hardcoded shape, it has 130 NPU, 100 GPU fps instead of 600 metal shader.
+Running on a MacBook or iPhone with a hardcoded shape, it has **130 fps** on NPU, **100 fps** on GPU instead of **600 fps** metal shader.
 
 However, here I learned the following feature. CoreML cannot include NPU if the model has dynamic input (even if part of the mlmodel is executed at the same resolution, as after resizing). This greatly complicates the situation in general when we do not know what resolution will be at the input. We will explore this approach later at 1920 by 1080.
 
@@ -123,7 +123,7 @@ Therefore, I also discarded this option. If the neural network worked on the GPU
 
 
 ### Nearest Resize with Metal Kernel
-Next, I tried to implement my nearest resizing kernel to compare its speed with Apple's. Billinear generally works better than Nearest, but here we win about 50-100 fps.
+Next, I tried to implement my nearest resizing kernel to compare its speed with Apple's. Billinear generally works better than Nearest, but here we win about **50-100 fps**.
 
 ```python
 kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) ]],
@@ -171,7 +171,7 @@ pipeline.spec.description.output[1].ParseFromString(model._spec.description.outp
 
 model = ct.models.MLModel(pipeline.spec, weights_dir=model.weights_dir)
 ``` 
-I tried all torch resizes, and they yielded 100-130 fps with the model. This is less than the baseline resizer + CoreML model but more than without combining them into a pipeline.
+I tried all torch resizes, and they yielded **100-130 fps** with the model. This is less than the baseline resizer + CoreML model but more than without combining them into a pipeline.
 
 ### One static model
 
@@ -188,7 +188,7 @@ class IOSMultiModel(torch.nn.Module):
         return detection, pose
 ```
 
-My last attempt to speed up resizing – into one mlmodel, and so far, this is the best attempt without using Metal – 185 fps. It remains about 35 fps compared to Metal resize + CoreML.
+My last attempt to speed up resizing – into one mlmodel, and so far, this is the best attempt without using Metal – 185 fps. It remains about **35 fps** compared to Metal resize + CoreML.
 
 I achieved this result using torchvision.
 
@@ -209,9 +209,9 @@ I stop searching at Metal Resize + NPU CoreML. I could not find how to perform r
 ## Post Processing
 This part is about creating a response from the neural network tensor in a format convenient for Swift. I had 3 attempts to make post-processing. GPU, CPU, CPU + CoreML operations. Here I won't elaborate much, just to say,
 
-GPU worked most efficiently of all and since I need to call it for two outputs, I do it simultaneously asynchronously. This leads me to 600-700 fps.
+GPU worked most efficiently of all and since I need to call it for two outputs, I do it simultaneously asynchronously. This leads me to **600-700 fps**.
 
 Afterward, I apply the Non-Max Suppression algorithm written on CPU with 26k fps.
 
 ## Conclusion
-In the end, the entire model reaches 150 fps at a resolution of 320 by 224, and 200 at 256 by 128.
+In the end, the entire model reaches **150 fps** at a resolution of 320 by 224, and **200 fps** at 256 by 128.
