@@ -188,7 +188,7 @@ class IOSMultiModel(torch.nn.Module):
         return detection, pose
 ```
 
-My last attempt to speed up resizing – into one mlmodel, and so far, this is the best attempt without using Metal – 185 fps. It remains about **35 fps** compared to Metal resize + CoreML.
+My last attempt to speed up resizing – into one mlmodel, and so far, this is the best attempt without using Metal – **185 fps**. It remains about **35 fps** compared to Metal resize + CoreML.
 
 I achieved this result using torchvision.
 
