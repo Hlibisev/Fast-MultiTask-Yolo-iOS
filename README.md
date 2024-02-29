@@ -209,9 +209,9 @@ I stop searching at Metal Resize + NPU CoreML. I could not find how to perform r
 ## Post Processing
 This part is about creating a response from the neural network tensor in a format convenient for Swift. I had 3 attempts to make post-processing. GPU, CPU, CPU + CoreML operations. Here I won't elaborate much, just to say,
 
-GPU worked most efficiently of all and since I need to call it for two outputs, I do it simultaneously asynchronously. This leads me to **600-700 fps**.
+GPU worked most efficiently of all and since I need to call it for two outputs, I do it simultaneously asynchronously. This leads me to **500-600 fps**.
 
 Afterward, I apply the Non-Max Suppression algorithm written on CPU with 26k fps.
 
 ## Conclusion
-In the end, the entire model reaches **150 fps** at a resolution of 320 by 224, and **200 fps** at 256 by 128.
+In the end, the entire model reaches **153 fps** at a resolution of 320 by 224, and **197 fps** at 256 by 128.
