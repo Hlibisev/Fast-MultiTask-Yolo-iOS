@@ -28,15 +28,15 @@ shape (128, 256)
 
 We observe that the NPU chip has the highest performance. It's sufficient for the current stage, and I decided to focus on the preprocessing and postprocessing steps.
 
-### Preproceeing
+## Preproceeing
 For our model, preprocessing outside the CoreML Model only included resizing.
 
-## Baseline
+### Baseline
 As a test, I initially performed resizing on the CPU but realized it took much longer than the model itself. Thus, I quickly moved to MPSImageBilinearScale. This GPU-based resizing operation operates at approximately 600 fps. This will be our baseline, which we will aim to improve further.
 
 All attempts were inspired by the idea of transferring resizing to the NPU or reducing the overhead of launching GPU operations by incorporating this operation into a static graph.
 
-## Resize Inside Layer
+### Resize Inside Layer
 Since direct access to the NPU is not available – thanks, Apple – I began experimenting with writing a version of resize in PyTorch, which, after conversion to CoreML, would utilize the NPU. 
 
 ```python
@@ -62,7 +62,7 @@ def resize(context, node):
 ```
 
 
-## Nearest Torch Realization Layer
+### Nearest Torch Realization Layer
 Next, I decided not to use Apple operations but to write my resizer using regular torch functions. Such a nearest resizer was also worse than the baseline and reached 170 fps after conversion.
 
 ```python
@@ -87,7 +87,7 @@ def upsample_2d(x, shapes):
     return x
 ```
 
-## Resize with Convolution
+### Resize with Convolution
 
 The input size of the frontal camera on iPhone 13 is 1920, 1080. The idea was to translate interpolation to a convolution layer. This may be more efficient and could run on NPU instead of GPU.
 
@@ -113,14 +113,14 @@ Running on a MacBook or iPhone with a hardcoded shape, it has 130 NPU, 100 GPU f
 However, here I learned the following feature. CoreML cannot include NPU if the model has dynamic input (even if part of the mlmodel is executed at the same resolution, as after resizing). This greatly complicates the situation in general when we do not know what resolution will be at the input. We will explore this approach later at 1920 by 1080.
 
 
-## Custom Resize Inside CoreML
+### Custom Resize Inside CoreML
 What if the setup time for the resize kernel is too long? Yes, that's the case. Therefore, I decided to try adding my neural layer, implemented in Metal, to the computational graph to remove overheads and have a static graph. However, it turned out that neural networks with custom layers do not support NPU at all. This could be a very strong limitation for porting nn to mobile devices.
 
 Therefore, I also discarded this option. If the neural network worked on the GPU as well or faster than on the NN, we could consider such an option.
 
 
 
-## Nearest Resize with Metal Kernel
+### Nearest Resize with Metal Kernel
 Next, I tried to implement my nearest resizing kernel to compare its speed with Apple's. Billinear generally works better than Nearest, but here we win about 50-100 fps.
 
 ```python
@@ -141,7 +141,7 @@ kernel void nearestResize(texture2d<float, access::sample> source [[ texture(0) 
 }
 ```
 
-# Pipeline model
+### Pipeline model
 As an experiment, I had a hypothesis to connect resize and yolo into one model with hardcoded resolution, and this can be done through coremltools.
 
 ```python
@@ -171,7 +171,7 @@ model = ct.models.MLModel(pipeline.spec, weights_dir=model.weights_dir)
 ``` 
 I tried all torch resizes, and they yielded 100-130 fps with the model. This is less than the baseline resizer + CoreML model but more than without combining them into a pipeline.
 
-# One static model
+### One static model
 
 ```python
 class IOSMultiModel(torch.nn.Module):
@@ -204,13 +204,12 @@ class UpsampleModel(torch.nn.Module):
 I stop searching at Metal Resize + NPU CoreML. I could not find how to perform resizing on NPU, adding my custom NN Resizing layer is not possible in CoreML without switching from NPU to GPU, and the combined compiled model does not offer an advantage over the basic version.
 
 
-# Post Processing
+## Post Processing
 This part is about creating a response from the neural network tensor in a format convenient for Swift. I had 3 attempts to make post-processing. GPU, CPU, CPU + CoreML operations. Here I won't elaborate much, just to say,
 
 GPU worked most efficiently of all and since I need to call it for two outputs, I do it simultaneously asynchronously. This leads me to 600-700 fps.
 
 Afterward, I apply the Non-Max Suppression algorithm written on CPU with 26k fps.
-
 
 ## Conclusion
 In the end, the entire model reaches 150 fps at a resolution of 320 by 224, and 200 at 256 by 128.
